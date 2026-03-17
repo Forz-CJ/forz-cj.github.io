@@ -1,0 +1,1288 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Windows Server & AD Quiz</title>
+    <style>
+      :root {
+        --primary-color: #0056b3;
+        --secondary-color: #f8f9fa;
+        --text-color: #333;
+        --success-color: #28a745;
+        --danger-color: #dc3545;
+        --border-color: #ddd;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #e9ecef;
+        color: var(--text-color);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        background-color: #fff;
+        max-width: 800px;
+        width: 100%;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        box-sizing: border-box;
+      }
+      h1 {
+        text-align: center;
+        color: var(--primary-color);
+        margin-top: 0;
+      }
+      .progress-container {
+        margin-bottom: 20px;
+      }
+      .progress-bar-bg {
+        background-color: var(--border-color);
+        border-radius: 5px;
+        height: 10px;
+        width: 100%;
+        overflow: hidden;
+      }
+      .progress-bar-fill {
+        background-color: var(--primary-color);
+        height: 100%;
+        width: 0%;
+        transition: width 0.3s ease;
+      }
+      .progress-text {
+        text-align: right;
+        font-size: 0.9em;
+        color: #666;
+        margin-top: 5px;
+      }
+      .question-text {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin-bottom: 20px;
+      }
+      .options-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .option {
+        background-color: var(--secondary-color);
+        border: 2px solid var(--border-color);
+        border-radius: 5px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 1em;
+        text-align: left;
+      }
+      .option:hover {
+        background-color: #e2e6ea;
+        border-color: #ccc;
+      }
+      .option.selected {
+        background-color: #cce5ff;
+        border-color: var(--primary-color);
+      }
+      .btn {
+        background-color: var(--primary-color);
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        padding: 12px 25px;
+        font-size: 1em;
+        cursor: pointer;
+        margin-top: 20px;
+        transition: background-color 0.2s ease;
+        display: block;
+        width: 100%;
+      }
+      .btn:hover {
+        background-color: #004494;
+      }
+      .btn:disabled {
+        background-color: #a0c4e8;
+        cursor: not-allowed;
+      }
+      #results-container {
+        display: none;
+      }
+      .result-header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .result-score {
+        font-size: 2.5em;
+        font-weight: bold;
+      }
+      .pass {
+        color: var(--success-color);
+      }
+      .fail {
+        color: var(--danger-color);
+      }
+      .review-list {
+        max-height: 500px;
+        overflow-y: auto;
+        border-top: 2px solid var(--border-color);
+        padding-top: 20px;
+      }
+      .review-item {
+        margin-bottom: 20px;
+        padding: 15px;
+        border-radius: 5px;
+        background-color: var(--secondary-color);
+        border-left: 5px solid;
+      }
+      .review-item.correct {
+        border-left-color: var(--success-color);
+      }
+      .review-item.incorrect {
+        border-left-color: var(--danger-color);
+      }
+      .review-question {
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .review-answers {
+        font-size: 0.9em;
+        margin-bottom: 10px;
+      }
+      .review-explanation {
+        font-size: 0.9em;
+        font-style: italic;
+        color: #555;
+        background: #fff;
+        padding: 10px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container" id="quiz-container">
+      <h1>IT Administration Quiz</h1>
+
+      <div class="progress-container" id="progress-container">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-text" id="progress-text">Question 1 of N</div>
+      </div>
+
+      <div id="question-area">
+        <div class="question-text" id="question-text">Loading question...</div>
+        <div class="options-container" id="options-container"></div>
+        <button class="btn" id="next-btn" disabled onclick="nextQuestion()">
+          Next Question
+        </button>
+      </div>
+    </div>
+
+    <div class="container" id="results-container">
+      <h1>Quiz Results</h1>
+      <div class="result-header">
+        <div class="result-score" id="result-score">0%</div>
+        <h2 id="result-status">Status</h2>
+        <p>Passing requirement: 60%</p>
+      </div>
+
+      <h3>Detailed Review:</h3>
+      <div class="review-list" id="review-list"></div>
+      <button class="btn" onclick="location.reload()">Retake Quiz</button>
+    </div>
+
+    <script>
+      // Quiz data containing both the previous set and the newly provided set
+      let quizData = [
+        // --- NEW QUESTIONS ADDED ---
+        {
+          q: "Block-level storage stores data in files and folders representing volumes managed by the server operating system.",
+          options: ["True", "False"],
+          a: "False",
+          exp: "Block-level storage saves data in raw, unformatted chunks (blocks) and is typically used by Storage Area Networks (SANs). File-level storage (like Network Attached Storage or standard Windows file sharing) is what uses files and folders to organize data.",
+        },
+        {
+          q: "You want to ensure that data about authentication and authorization traffic forwarded to your server with the NPS role installed on the internal network is written to an SQL Server database rather than to a local file. Which of the following should you configure to accomplish this goal?",
+          options: [
+            "RADIUS proxy",
+            "RADIUS server",
+            "RADIUS accounting",
+            "RADIUS client",
+          ],
+          a: "RADIUS accounting",
+          exp: "In Network Policy Server (NPS), RADIUS accounting is the specific component responsible for tracking and logging authentication data. You can configure the accounting provider to log this data directly into a Microsoft SQL Server database instead of a local text file.",
+        },
+        {
+          q: "You want to deploy a server on your organization's internal network that will respond to authentication and authorization requests from a dedicated hardware device that functions as a VPN server that is deployed on your organization's perimeter network. Which of the following must you deploy to accomplish this goal:",
+          options: [
+            "RADIUS client",
+            "RADIUS server",
+            "RADIUS accounting",
+            "RADIUS proxy",
+          ],
+          a: "RADIUS server",
+          exp: "The dedicated VPN hardware acts as the client sending the requests. To evaluate the credentials and actually respond to those requests, you must deploy a central RADIUS server (like a Windows Server running the NPS role).",
+        },
+        {
+          q: "How can you ensure that only specific users can access a shared folder on the file server?",
+          options: [
+            "Configure NTFS Permissions",
+            "Use DFS Replication",
+            "Increase the DHCP lease duration",
+            "Enable SMB Signing",
+          ],
+          a: "Configure NTFS Permissions",
+          exp: "NTFS permissions are configured at the file system level and explicitly define exactly which users or security groups are allowed to view, read, modify, or delete the contents of a specific folder or file.",
+        },
+        {
+          q: "Your organization has three Active Directory forests that don't have a trust relationship. You have a single VPN server that handles all incoming VPN connections. This VPN server is a dedicated hardware device deployed on the perimeter network. You want to configure the deployment so that authentication and authorization traffic is forwarded to existing RADIUS servers in each forest based on the connecting user's account properties. Which of the following must you deploy to accomplish this goal:",
+          options: [
+            "RADIUS proxy",
+            "RADIUS server",
+            "RADIUS accounting",
+            "RADIUS client",
+          ],
+          a: "RADIUS proxy",
+          exp: 'A RADIUS proxy acts as a traffic director. It receives the login requests from the VPN server and uses routing rules (like looking at the "@domain.com" part of the username) to forward the request to the correct RADIUS server in the appropriate forest.',
+        },
+        {
+          q: "Your organization has purchased a dedicated hardware device that functions as a VPN server, and you have deployed this device on your organization's perimeter network. You want to allow your organization's existing RADIUS server, deployed as a Windows Server 2022 server with the NPS enrolled to accept and respond to authentication and authorization traffic from this device. Which of the following should you configure on the server with the NPS role installed to accomplish this goal?",
+          options: [
+            "RADIUS proxy",
+            "RADIUS accounting",
+            "RADIUS client",
+            "RADIUS server",
+          ],
+          a: "RADIUS client",
+          exp: 'For the central NPS server to trust and process requests from the VPN device, you must configure the VPN device as a "RADIUS client" inside the NPS console and provide a matching shared secret.',
+        },
+        {
+          q: "Your company requires Multi-Factor Authentication (MFA) for VPN logins. Which service should you integrate with Windows Server 2022?",
+          options: [
+            "DFS Namespaces",
+            "BranchCache",
+            "Azure AD Multi-Factor Authentication (MFA)",
+            "File Server Resource Manager (FSRM)",
+          ],
+          a: "Azure AD Multi-Factor Authentication (MFA)",
+          exp: "Microsoft provides an NPS Extension that links your on-premises NPS server to Azure AD. When a user logs into the VPN, the NPS server prompts Azure to trigger an MFA request (like an app notification or SMS) before granting access.",
+        },
+        {
+          q: "Your company wants to allow remote employees to securely access the internal network using VPN. Which Windows Server 2022 role should you install?",
+          options: [
+            "Network Policy Server (NPS)",
+            "Remote Access",
+            "Windows Deployment Services (WDS)",
+            "Active Directory Domain Services (AD DS)",
+          ],
+          a: "Remote Access",
+          exp: "The Remote Access server role includes the Routing and Remote Access Service (RRAS), which provides the engine needed to deploy, configure, and manage VPN and DirectAccess connections for external clients.",
+        },
+        {
+          q: "How can you allow users to recover accidentally deleted files without contacting IT support?",
+          options: [
+            "Disable DFS Replication",
+            "Enable Volume Shadow Copy (VSS)",
+            "Use NTFS Permissions",
+            "Enable SMB Signing",
+          ],
+          a: "Enable Volume Shadow Copy (VSS)",
+          exp: 'VSS powers the "Previous Versions" feature in Windows. It takes snapshot backups of the file system at scheduled intervals. Users can right-click a folder, select the "Previous Versions" tab, and independently restore a deleted file.',
+        },
+        {
+          q: "How can you ensure that files transferred via SMB are encrypted?",
+          options: [
+            "Use a DFS Namespace",
+            "Enable NTFS Compression",
+            "Disable File Screening",
+            "Enable SMB Encryption",
+          ],
+          a: "Enable SMB Encryption",
+          exp: "SMB Encryption secures the data while it is in transit over the network. This prevents attackers from using packet sniffing tools to eavesdrop on the files being transferred between the client and the server.",
+        },
+        {
+          q: "The HDD is a computer component that uses a motor to spin the disk, a magnetic read-write head and has metal platters that permanently store data.",
+          options: ["True", "False"],
+          a: "True",
+          exp: "Hard Disk Drives (HDDs) are traditional mechanical storage devices that rely on spinning physical, magnetic platters and an actuator arm to read and write data.",
+        },
+        {
+          q: "You want only company-issued laptops to connect to the VPN. What feature should you use?",
+          options: [
+            "Use a Static IP Address Assignment for VPN Clients",
+            "Enable DFS Replication",
+            "Enable SMB Signing",
+            "Network Policy Server (NPS) with Network Access Protection (NAP)",
+          ],
+          a: "Network Policy Server (NPS) with Network Access Protection (NAP)",
+          exp: "NPS policies allow you to set strict connection conditions. You can require that a connecting device possesses a specific computer certificate (which you only install on company-issued laptops) or passes a health check before the VPN connection is allowed.",
+        },
+        {
+          q: "You need to allow remote users to access internal servers using RDP over the VPN while keeping security in mind. What should you configure?",
+          options: [
+            "Use DFS Replication for better performance",
+            "Restrict RDP access to specific VPN subnets and use Network Level Authentication (NLA)",
+            "Enable SMB Signing",
+            "Disable DNSSEC",
+          ],
+          a: "Restrict RDP access to specific VPN subnets and use Network Level Authentication (NLA)",
+          exp: "NLA requires the user to authenticate to the remote server before the actual RDP session is fully established, protecting the server from denial-of-service attacks. Restricting subnets ensures that only authorized network segments can initiate these connections.",
+        },
+        {
+          q: "Your file server hosts large multimedia files, and users report slow read and write speeds. Which feature should you enable to optimize performance?",
+          options: [
+            "Enable File Screening",
+            "Increase the DHCP lease time",
+            "Enable DFS Replication",
+            "Enable SMB Multichannel",
+          ],
+          a: "Enable SMB Multichannel",
+          exp: "SMB Multichannel allows a server and a client to simultaneously use multiple network connections (like multiple Ethernet ports) to aggregate bandwidth. This vastly increases throughput for transferring large files and provides fault tolerance if one cable unplugs.",
+        },
+        {
+          q: "You want to restrict VPN access to only members of a specific security group. How can you enforce this?",
+          options: [
+            "Disable SMB Encryption",
+            "Use NPS Network Policies to filter by security group",
+            "Modify DHCP settings",
+            "Enable DirectAccess instead of VPN",
+          ],
+          a: "Use NPS Network Policies to filter by security group",
+          exp: 'Inside the NPS console, you can create a Network Policy where the primary condition is "Windows Groups". The policy will only grant access if the user\'s Active Directory account is a member of the specified group.',
+        },
+        {
+          q: "SCSI, pronounced as scuzzy, is another interface that connects storage and peripheral devices to computers.",
+          options: ["True", "False"],
+          a: "True",
+          exp: "Small Computer System Interface (SCSI) is a set of standards used to connect and transfer data between computers and peripheral devices, primarily used for high-performance server hard drives in the past.",
+        },
+        {
+          q: "How can you limit the amount of storage space a user can consume on a file server?",
+          options: [
+            "Enable DFS Replication",
+            "Use NTFS Permissions",
+            "Use Quotas in File Server Resource Manager (FSRM)",
+            "Disable File Caching",
+          ],
+          a: "Use Quotas in File Server Resource Manager (FSRM)",
+          exp: "FSRM is a suite of tools that allows administrators to set specific hard or soft storage quotas on entire volumes or specific folders, preventing users from filling up the server's hard drives.",
+        },
+        {
+          q: "Remote users complain that their VPN session disconnects randomly. What could be the cause?",
+          options: [
+            "Short session timeout settings on NPS",
+            "Users are using a personal device",
+            "DNSSEC is not configured",
+            "File Screening is blocking VPN traffic",
+          ],
+          a: "Short session timeout settings on NPS",
+          exp: 'NPS network policies include "Session Timeout" and "Idle Timeout" constraints. If an administrator sets these limits too aggressively, the server will intentionally drop the user\'s VPN connection after a short period, which the user experiences as a random disconnection.',
+        },
+        {
+          q: "You want to block users from storing video files (mp4, avi) on the file server. What should you configure?",
+          options: [
+            "NTFS Permissions",
+            "Enable SMB Encryption",
+            "Disable DFS Replication",
+            "File Screening in File Server Resource Manager (FSRM)",
+          ],
+          a: "File Screening in File Server Resource Manager (FSRM)",
+          exp: "File Screening is a feature of FSRM that allows you to create rules blocking specific file types or extensions from being saved to a designated folder or drive.",
+        },
+        {
+          q: "You need to ensure high availability for shared files across multiple locations. What should you implement?",
+          options: [
+            "Enable Storage Quotas",
+            "DFS (Distributed File System) Replication",
+            "Enable SMB Signing",
+            "Use File Screening",
+          ],
+          a: "DFS (Distributed File System) Replication",
+          exp: "DFS Replication synchronizes folders across multiple servers over a network. If the server in Manila goes down, users can still access identical, replicated copies of their files from the server in Cebu.",
+        },
+        {
+          q: "Your file server is running out of space due to duplicate files. What feature should you use to optimize storage?",
+          options: [
+            "Enable NTFS Compression",
+            "Use Distributed File System (DFS)",
+            "Enable Data Deduplication",
+            "Increase RAID redundancy",
+          ],
+          a: "Enable Data Deduplication",
+          exp: "Data Deduplication scans the hard drive for identical chunks of data. It saves only one master copy of that chunk and replaces the duplicates with tiny pointers, saving massive amounts of disk space.",
+        },
+        {
+          q: "DFS allows you data from your server in an authorized and controlled way.",
+          options: ["True", "False"],
+          a: "True",
+          exp: "DFS Namespaces provides a single, logical folder structure to organize files spread across multiple servers, making it easier for users to access their data securely and in a controlled manner while respecting underlying NTFS permissions.",
+        },
+        {
+          q: "In which of the following situations can a DirectAccess client use only IP over HTTPS?",
+          options: [
+            "The DirectAccess server's public interface is assigned two nonconsecutive public IPv4 addresses",
+            "The DirectAccess server has a network interface with a public IP address and is located on a perimeter network",
+            "The DirectAccess server has a network interface connected directly to the Internet",
+            "The DirectAccess server is behind a NAT device.",
+          ],
+          a: "The DirectAccess server is behind a NAT device.",
+          exp: "DirectAccess relies on IPv6. If the server is placed behind a NAT router, it usually only has a private IPv4 address, which breaks transition protocols like Teredo and 6to4. It must rely on IP-HTTPS to tunnel the traffic through port 443.",
+        },
+        {
+          q: "Remote users experience slow access to shared files. What feature can improve performance?",
+          options: [
+            "Enable File Screening",
+            "Disable SMB Signing",
+            "Increase the NTFS block size",
+            "Enable BranchCache",
+          ],
+          a: "Enable BranchCache",
+          exp: "BranchCache is designed for wide area networks (WANs). It caches files from a central office server onto computers at the branch office. When a second user at the branch requests the same file, they download it quickly from the local cache instead of slowly across the internet.",
+        },
+
+        // --- PREVIOUS QUESTIONS (Included for a complete quiz) ---
+        {
+          q: "How can you immediately apply a Group Policy change across the entire domain?",
+          options: [
+            "Increase the GPO precedence",
+            "Restart all computers",
+            "Modify the Group Policy refresh interval",
+            "Run gpupdate /force on all computers",
+          ],
+          a: "Run gpupdate /force on all computers",
+          exp: "The gpupdate /force command overrides standard background refresh intervals and forces client machines to immediately reach out to the Domain Controller to pull the latest Group Policy Object configurations.",
+        },
+        {
+          q: "True or False: Hosts and Nodes are the same.",
+          options: ["True", "False"],
+          a: "False",
+          exp: "In networking, a 'node' is any physical or logical device connected to a network. A 'host' is a specific type of node that requires an IP address and provides resources or services.",
+        },
+        {
+          q: "Which PowerShell command resets a user's password?",
+          options: [
+            'Set-ADAccountPassword -Identity "jdoe" -NewPassword (ConvertTo-SecureString "NewPass123!" -AsPlainText -Force) -Reset',
+            'Reset-ADUserPassword -Identity "jdoe" -NewPassword (ConvertTo-SecureString "NewPass123!" -AsPlainText -Force)',
+            'Unlock-ADUser -Identity "jdoe"',
+            'Set-ADAccountPassword -Identity "jdoe" -NewPassword (ConvertTo-SecureString "NewPass123!" -AsPlainText -Force)',
+          ],
+          a: 'Set-ADAccountPassword -Identity "jdoe" -NewPassword (ConvertTo-SecureString "NewPass123!" -AsPlainText -Force)',
+          exp: "The Set-ADAccountPassword cmdlet is specifically used in the Active Directory PowerShell module to modify or reset the password of an existing Active Directory account.",
+        },
+        {
+          q: "How can you apply a GPO only to laptops in an Active Directory domain?",
+          options: [
+            "Apply GPO at the domain level",
+            "Modify OU Delegation",
+            "Use a PowerShell script",
+            "Use WMI Filtering",
+          ],
+          a: "Use WMI Filtering",
+          exp: "Windows Management Instrumentation (WMI) filtering allows administrators to dynamically apply GPOs based on a computer's hardware characteristics, which is ideal for targeting laptops.",
+        },
+        {
+          q: "You need to ensure a specific GPO always applies, even if conflicting policies exist. What should you do?",
+          options: [
+            "Enable Loopback Processing",
+            "Change the GPO refresh interval",
+            "Use GPO Enforce",
+            "Link the GPO at the Domain Level",
+          ],
+          a: "Use GPO Enforce",
+          exp: "Applying the 'Enforced' setting on a GPO link prevents child Organizational Units (OUs) from blocking the inheritance of that policy or overriding its settings with a local policy.",
+        },
+        {
+          q: "Your organization is receiving phishing emails pretending to be from your domain. How can you prevent this?",
+          options: [
+            "Configure SPF, DKIM, and DMARC records",
+            "Increase the email size limit",
+            "Enable print queue monitoring",
+            "Disable Active Directory Authentication",
+          ],
+          a: "Configure SPF, DKIM, and DMARC records",
+          exp: "These are standard DNS records used for email authentication. They mathematically prove to receiving mail servers that an email actually came from your organization and wasn't spoofed by a phisher.",
+        },
+        {
+          q: "A user was recently added to a security group but cannot access its resources. What should they do?",
+          options: [
+            "Restart their computer",
+            "Log off and log back in",
+            "Wait for the next Group Policy refresh",
+            "Delete their user profile",
+          ],
+          a: "Log off and log back in",
+          exp: "A user's security access token is only generated by the Domain Controller during the initial login process. To receive an updated token containing the new group membership, the user must log out and authenticate again.",
+        },
+        {
+          q: "How can you ensure only authorized devices receive an IP address from DHCP?",
+          options: [
+            "Configure a Stub Zone",
+            "Use Group Policy",
+            "Enable MAC address filtering",
+            "Enable DHCP Failover",
+          ],
+          a: "Enable MAC address filtering",
+          exp: "MAC address filtering allows the DHCP server to maintain an explicit 'Allow' or 'Deny' list based on the physical hardware addresses of client network cards.",
+        },
+        {
+          q: "How can you prevent a specific user from receiving a GPO while still applying it to others?",
+          options: [
+            "Disable GPO Enforcement",
+            "Enable Loopback Processing",
+            "Change the refresh interval",
+            "Use Security Filtering",
+          ],
+          a: "Use Security Filtering",
+          exp: "Security Filtering allows you to explicitly remove the 'Apply Group Policy' permission for a specific user or group, effectively bypassing them.",
+        },
+        {
+          q: "How can you prevent users from logging in outside business hours?",
+          options: [
+            "Enable Kerberos authentication",
+            "Modify DNS settings",
+            "Set Logon Hours in ADUC",
+            "Use a Group Policy Preference",
+          ],
+          a: "Set Logon Hours in ADUC",
+          exp: "In Active Directory Users and Computers (ADUC), the Account properties tab contains a Logon Hours grid where administrators can explicitly deny login capabilities during specific days and times.",
+        },
+        {
+          q: "Which setting allows you to control Windows Updates using GPO?",
+          options: [
+            "Computer Configuration → Windows Update Policies",
+            "Enable IIS logging",
+            "Modify Registry settings",
+            "User Configuration → System Preferences",
+          ],
+          a: "Computer Configuration → Windows Update Policies",
+          exp: "Because Windows Updates are applied to the operating system itself regardless of who logs in, the configuration policies are logically located under the 'Computer Configuration' node.",
+        },
+        {
+          q: "Users are experiencing random failures when resolving domain names. Which tool can help diagnose the issue?",
+          options: [
+            "nslookup",
+            "net use",
+            "gpupdate /force",
+            "ipconfig /release",
+          ],
+          a: "nslookup",
+          exp: "nslookup (Name Server Lookup) is a built-in command-line administrative tool designed specifically for querying the Domain Name System (DNS).",
+        },
+        {
+          q: "Users report that they cannot obtain an IP address. What is the first troubleshooting step?",
+          options: [
+            "Modify Group Policy",
+            "Configure a Secondary Zone",
+            "Restart the DNS service",
+            "Check if the DHCP server service is running",
+          ],
+          a: "Check if the DHCP server service is running",
+          exp: "The DHCP service is responsible for leasing IP addresses. If the core service has stopped or crashed, no addresses can be distributed.",
+        },
+        {
+          q: "How can you ensure specific devices always receive the same IP address?",
+          options: [
+            "Disable Dynamic Updates",
+            "Configure a DHCP Reservation",
+            "Use a Stub Zone",
+            "Extend the DHCP lease duration",
+          ],
+          a: "Configure a DHCP Reservation",
+          exp: "A DHCP reservation instructs the server to permanently tie a specific IP address to a specific device's MAC address.",
+        },
+        {
+          q: "You need to configure a secondary DNS server for redundancy in Windows Server 2022. What type of zone should you create?",
+          options: [
+            "Primary Zone",
+            "Stub Zone",
+            "Active Directory-Integrated Zone",
+            "Secondary Zone",
+          ],
+          a: "Secondary Zone",
+          exp: "A Secondary Zone provides a read-only backup copy of a primary DNS zone. It continues to answer queries if the primary server goes offline.",
+        },
+        {
+          q: "Users report slow access to a shared folder on a Windows Server 2022 File Server. What should you check first?",
+          options: [
+            "Disk usage and performance counters",
+            "File share permissions",
+            "DNS configuration on client machines",
+            "Restart the file server",
+          ],
+          a: "Disk usage and performance counters",
+          exp: "Checking the disk Input/Output (I/O) performance counters will quickly reveal if the physical hard drives are overwhelmed with read/write requests.",
+        },
+        {
+          q: "A department needs their passwords to expire every 30 days, while others follow the domain default of 90 days. How should you configure this?",
+          options: [
+            "Modify Group Policy Object (GPO) settings",
+            "Manually set passwords to expire in ADUC",
+            "Assign different Organizational Units (OUs)",
+            "Use Fine-Grained Password Policies",
+          ],
+          a: "Use Fine-Grained Password Policies",
+          exp: "Fine-Grained Password Policies allow Active Directory administrators to apply multiple, distinct password and account lockout policies to different sets of users.",
+        },
+        {
+          q: "True or False: Web printing enables users to print files to network printers through Windows Explorer.",
+          options: ["True", "False"],
+          a: "False",
+          exp: "Web printing relies on the Internet Printing Protocol (IPP) which allows users to manage and send print jobs via a web browser, not Windows File Explorer.",
+        },
+        {
+          q: "Your organization requires stronger password policies. What Group Policy setting should you enable?",
+          options: [
+            "Enforce password complexity",
+            "Kerberos Ticket Policy",
+            "Smart Card Authentication",
+            "Account Lockout Policy",
+          ],
+          a: "Enforce password complexity",
+          exp: "Enabling password complexity rules forces end-users to create passwords that include a mixture of uppercase, lowercase, numbers, and symbols.",
+        },
+        {
+          q: "Users complain they cannot log in, and you see Kerberos authentication errors. What should you check?",
+          options: [
+            "Active Directory Recycle Bin",
+            "DNS settings on the client machine",
+            "Group Policy settings",
+            "NTFS permissions",
+          ],
+          a: "DNS settings on the client machine",
+          exp: "Kerberos requires client machines to actively query DNS to locate Domain Controllers. If DNS settings are wrong, it cannot request a secure ticket.",
+        },
+        {
+          q: "A user is leaving the company. What should you do first?",
+          options: [
+            "Remove their group memberships",
+            "Delete their account",
+            "Reset their password and move their account to a restricted OU",
+            "Immediately disable their account",
+          ],
+          a: "Immediately disable their account",
+          exp: "Disabling secures the network while preserving the user's data, email history, and security identifier (SID) for future auditing.",
+        },
+        {
+          q: "A contractor needs access for one month. How should you configure their account?",
+          options: [
+            "Create a temporary domain and assign the user there",
+            "Set an account expiration date in ADUC",
+            "Use a PowerShell script to delete the account after a month",
+            "Disable the account manually after one month",
+          ],
+          a: "Set an account expiration date in ADUC",
+          exp: "ADUC allows administrators to specify an exact calendar date when the account will automatically expire and lock.",
+        },
+        {
+          q: "A company has multiple branch offices connected via slow WAN links. What should you do to optimize Active Directory replication?",
+          options: [
+            "Use NTFS compression",
+            "Create separate Active Directory Sites",
+            "Increase replication frequency",
+            "Disable replication",
+          ],
+          a: "Create separate Active Directory Sites",
+          exp: "Creating separate sites forces AD to compress replication traffic across the slow WAN links and allows scheduling during off-peak hours.",
+        },
+        {
+          q: "How can you avoid IP address conflicts when using both static and DHCP-assigned addresses?",
+          options: [
+            "Use a DNS Forwarder",
+            "Configure a Stub Zone",
+            "Increase the DHCP lease time",
+            "Exclude static IPs from the DHCP scope",
+          ],
+          a: "Exclude static IPs from the DHCP scope",
+          exp: "An exclusion range instructs the DHCP server to explicitly ignore a specific block of IP addresses.",
+        },
+        {
+          q: "How can you track who is printing confidential documents?",
+          options: [
+            "Install IIS logging",
+            "Use NTFS permissions",
+            "Configure DNS Forwarding",
+            "Enable Audit Print Log in Group Policy",
+          ],
+          a: "Enable Audit Print Log in Group Policy",
+          exp: "Enabling print auditing forces the Windows Print Spooler to record tracking details into the Windows Event Viewer security logs.",
+        },
+        {
+          q: "A user is storing too many large files on a shared folder. How can you limit storage usage per user?",
+          options: [
+            "Configure a Group Policy Object (GPO)",
+            "Enable File Server Resource Manager (FSRM) quotas",
+            "Use NTFS permissions",
+            "Enable Storage Spaces",
+          ],
+          a: "Enable File Server Resource Manager (FSRM) quotas",
+          exp: "FSRM provides highly granular storage controls, allowing an administrator to enforce strict hard limits (quotas).",
+        },
+        {
+          q: "Users complain about slow logins and domain resource resolution issues. What should you check first?",
+          options: [
+            "Group Policy settings",
+            "User account passwords",
+            "DNS Event Logs on Domain Controllers",
+            "Windows Firewall settings",
+          ],
+          a: "DNS Event Logs on Domain Controllers",
+          exp: "Checking the DNS logs is the quickest way to identify if failing name resolution is causing the login bottlenecks.",
+        },
+        {
+          q: "A user cannot log in and receives 'The security database on the server does not have a computer account for this workstation trust relationship.' What should you do?",
+          options: [
+            "Modify DNS settings",
+            "Enable the user account",
+            "Reset the user's password",
+            "Rejoin the computer to the domain",
+          ],
+          a: "Rejoin the computer to the domain",
+          exp: "Disjoining the computer to a local workgroup and rejoining it to the domain re-establishes the broken trust relationship.",
+        },
+        {
+          q: "How can you configure an internal DNS server to resolve external domains without hosting public records?",
+          options: [
+            "Configure Forwarders",
+            "Enable Zone Transfers",
+            "Create an Active Directory-Integrated Zone",
+            "Use a Stub Zone",
+          ],
+          a: "Configure Forwarders",
+          exp: "DNS Forwarders tell your internal DNS server to pass any unresolved queries upstream to external, public DNS servers for resolution.",
+        },
+        {
+          q: "Before upgrading your Windows Server 2016 DCs to 2022, what should you do first?",
+          options: [
+            "Run Adprep to prepare the schema",
+            "Migrate users to a new domain",
+            "Delete old Group Policies",
+            "Raise the Domain Functional Level",
+          ],
+          a: "Run Adprep to prepare the schema",
+          exp: "The adprep.exe command updates the Active Directory schema to ensure it supports the new features of the newer OS.",
+        },
+        {
+          q: "You need to apply user settings regardless of which computer the user logs into. What should you enable?",
+          options: [
+            "Security Filtering",
+            "Loopback Processing Mode",
+            "WMI Filtering",
+            "Block Policy Inheritance",
+          ],
+          a: "Loopback Processing Mode",
+          exp: "Loopback processing is typically used to force specific user-level policies to apply based on the computer the user is logging into.",
+        },
+        {
+          q: "Users are getting IPs like 169.254.x.x instead of DHCP-assigned addresses. What is the likely cause?",
+          options: [
+            "DNS forwarding is misconfigured",
+            "The firewall is blocking DNS requests",
+            "The DHCP server is unavailable",
+            "The clients have duplicate IP addresses",
+          ],
+          a: "The DHCP server is unavailable",
+          exp: "Windows automatically assigns an APIPA (169.254.x.x) fallback address when it fails to reach an active DHCP server.",
+        },
+        {
+          q: "How do you ensure that an OU-level GPO is not overridden by a higher-level GPO?",
+          options: [
+            "Use Block Inheritance",
+            "Enable GPO Enforcement",
+            "Change the OU link order",
+            "Modify the GPO refresh interval",
+          ],
+          a: "Use Block Inheritance",
+          exp: "Applying the 'Block Inheritance' setting prevents standard GPOs linked at higher levels from flowing down to the OU.",
+        },
+        {
+          q: "A user frequently gets prompted to enter their password while using domain resources. What should you check?",
+          options: [
+            "Kerberos Ticket Expiration and Clock Synchronization",
+            "The user's account status in ADUC",
+            "The workstation's DNS settings",
+            "The user's password complexity",
+          ],
+          a: "Kerberos Ticket Expiration and Clock Synchronization",
+          exp: "Time skew or expired Kerberos tickets will constantly invalidate the user's secure session.",
+        },
+        {
+          q: "You want to configure a failover DHCP server for redundancy. What is the best method?",
+          options: [
+            "Increase the lease time",
+            "Configure DHCP Failover",
+            "Set up a DNS Forwarder",
+            "Create a Stub Zone",
+          ],
+          a: "Configure DHCP Failover",
+          exp: "DHCP Failover is the built-in Windows feature to replicate scopes for high availability.",
+        },
+        {
+          q: "A branch office does not have a local DHCP server. How can you allow clients to get IP addresses from the main office?",
+          options: [
+            "Modify the DHCP lease duration",
+            "Set up a Secondary Zone",
+            "Configure a DHCP Relay Agent",
+            "Enable Secure Dynamic Updates",
+          ],
+          a: "Configure a DHCP Relay Agent",
+          exp: "A DHCP Relay Agent intercepts local broadcasts and directs them as unicast traffic across the router to the central DHCP server.",
+        },
+        {
+          q: "You want to allow access to an IIS website only from internal company IPs. What should you configure?",
+          options: [
+            "Windows Defender Firewall",
+            "Group Policy Object (GPO)",
+            "IP Address and Domain Restrictions in IIS",
+            "DNS Forwarders",
+          ],
+          a: "IP Address and Domain Restrictions in IIS",
+          exp: "This IIS feature acts as a web-level firewall granting or denying access based on client IP subnets.",
+        },
+        {
+          q: "You suspect that replication between two Domain Controllers is failing. What tool should you use?",
+          options: ["Repadmin", "Netsh", "Dcdiag", "Nslookup"],
+          a: "Repadmin",
+          exp: "Repadmin.exe (Replication Administrator) is the primary command-line tool used to diagnose AD replication issues.",
+        },
+        {
+          q: "A user accidentally deleted a file from a network share. The file is not in the local Recycle Bin. How can you recover it?",
+          options: [
+            "Restore from Previous Versions (Shadow Copies)",
+            "Enable BitLocker",
+            "Restart the file server",
+            "Use PowerShell to recreate the file",
+          ],
+          a: "Restore from Previous Versions (Shadow Copies)",
+          exp: "Volume Shadow Copy service maintains snapshots allowing easy restoration from the 'Previous Versions' tab.",
+        },
+        {
+          q: "How can you prevent a user from logging in to multiple computers in the domain?",
+          options: [
+            "Set account expiration",
+            "Assign Log On To properties in ADUC",
+            "Use Group Policy to restrict workstation usage",
+            "Remove the user from the Domain Users group",
+          ],
+          a: "Assign Log On To properties in ADUC",
+          exp: "The 'Log On To' attribute explicitly lists the computer names a specific user is permitted to authenticate against.",
+        },
+        {
+          q: "True or False: Remote Assistance is a feature that enables a helper to access the host's desktop remotely to assist with resolving issues.",
+          options: ["True", "False"],
+          a: "True",
+          exp: "Remote assistance is built exactly for user-approved screen sharing and remote troubleshooting.",
+        },
+        {
+          q: "Users report that they cannot resolve internal domain names, but external websites are working. What should you check first?",
+          options: [
+            "Ensure the DNS server IP is correctly set on client machines",
+            "Restart the DHCP server",
+            "Modify the firewall rules",
+            "Change the default gateway",
+          ],
+          a: "Ensure the DNS server IP is correctly set on client machines",
+          exp: "If external works but internal fails, the client is likely using an external DNS (like Google 8.8.8.8) instead of the internal Domain Controller.",
+        },
+        {
+          q: "You need to prevent users from changing their own passwords while allowing administrators to do so. What should you modify?",
+          options: [
+            "Delegation Control Wizard",
+            "Group Policy",
+            "Account Lockout Policy",
+            "NTFS Permissions",
+          ],
+          a: "Group Policy",
+          exp: "(Note: Also achievable via ADUC checkboxes depending on the context, but Group Policy provides broad organizational enforcement).",
+        },
+        {
+          q: "A user reports being unable to log in. The error message states: 'The referenced account is currently locked out...' What should you do first?",
+          options: [
+            "Delete and recreate the user account",
+            "Reset the user's password",
+            "Increase the account lockout threshold in Group Policy",
+            "Unlock the account in Active Directory Users and Computers (ADUC)",
+          ],
+          a: "Unlock the account in Active Directory Users and Computers (ADUC)",
+          exp: "Administrators can manually clear the lockout flag on the user's account properties in ADUC.",
+        },
+        {
+          q: "You want a GPO to apply only to computers. What should you configure?",
+          options: [
+            "Security Filtering",
+            "Disable User Configuration",
+            "Computer Configuration settings in GPO",
+            "Apply Loopback Processing",
+          ],
+          a: "Disable User Configuration",
+          exp: "To optimize performance when a GPO only contains computer policies, you disable the User Configuration node.",
+        },
+        {
+          q: "How can you prevent a user account from expiring?",
+          options: [
+            "Add the user to Domain Admins",
+            'Set "Password Never Expires" in ADUC',
+            "Enable Account Auto-Renewal",
+            "Extend the Group Policy refresh interval",
+          ],
+          a: 'Set "Password Never Expires" in ADUC',
+          exp: "Checking this box overrides domain-wide maximum password age restrictions for that specific account.",
+        },
+        {
+          q: "A new Group Policy Object (GPO) has been applied to an Organizational Unit (OU), but some users within the OU are not receiving the settings. What should you check first?",
+          options: [
+            "Run gpupdate /force",
+            "Verify GPO inheritance and filtering",
+            "Restart the affected computers",
+            "Increase the GPO refresh interval",
+          ],
+          a: "Verify GPO inheritance and filtering",
+          exp: "If only *some* users are affected, it usually implies Security Filtering or WMI filters are blocking application.",
+        },
+        {
+          q: "How can you prevent all users from modifying their proxy settings in Internet Explorer or Edge?",
+          options: [
+            "Modify the Windows Firewall settings",
+            "Use NTFS permissions",
+            "Enable IP restrictions",
+            "Configure a GPO under User Configuration",
+          ],
+          a: "Configure a GPO under User Configuration",
+          exp: "Group policy preferences and administrative templates can lock down proxy configuration menus.",
+        },
+        {
+          q: "Which GPO setting should you use to disable the Control Panel for users?",
+          options: [
+            "Disable Windows Updates",
+            "Remove the user from the local Administrators group",
+            "Configure NTFS permissions",
+            "User Configuration → Administrative Templates → Control Panel → Prohibit access to Control Panel",
+          ],
+          a: "User Configuration → Administrative Templates → Control Panel → Prohibit access to Control Panel",
+          exp: "This specific administrative template directly removes Control Panel access.",
+        },
+        {
+          q: "The Active Directory Recycle Bin is enabled. What is the fastest way to restore a deleted user account?",
+          options: [
+            "Recreate the account manually",
+            "Use Restore-ADObject in PowerShell",
+            "Perform an authoritative restore using NTDSUTIL",
+            "Wait for replication to restore the object",
+          ],
+          a: "Use Restore-ADObject in PowerShell",
+          exp: "The AD Recycle bin allows instant restoration without needing authoritative restores from backups.",
+        },
+        {
+          q: "How can you track who is accessing an IIS-hosted website?",
+          options: [
+            "Enable IIS Logging",
+            "Use NTFS permissions",
+            "Configure Windows Firewall",
+            "Enable DNS logging",
+          ],
+          a: "Enable IIS Logging",
+          exp: "IIS includes a built-in logging module that records detailed data about every HTTP request.",
+        },
+        {
+          q: "You need to deploy an RODC in a branch office with limited security. What step is required?",
+          options: [
+            "Use the Delegated Administrator feature",
+            "Add the new DC as a global catalog server",
+            "Disable replication on the new DC",
+            "Ensure the server has a static IP address",
+          ],
+          a: "Use the Delegated Administrator feature",
+          exp: "Allows you to assign a local branch employee administrative rights over that specific server without giving them Domain Admin privileges.",
+        },
+        {
+          q: "A user's account is disabled every day even after being manually re-enabled. What should you check?",
+          options: [
+            "The user's password expiration settings",
+            "Group Policy enforcing account deactivation",
+            "A PowerShell script running on the Domain Controller",
+            "A scheduled task disabling the account",
+          ],
+          a: "A PowerShell script running on the Domain Controller",
+          exp: "Automated daily actions point to scheduled scripts (like offboarding automation) targeting the account.",
+        },
+        {
+          q: "True or False: A web service uses the FTP protocol.",
+          options: ["True", "False"],
+          a: "False",
+          exp: "Web services primarily use HTTP or HTTPS for request/response communication, not FTP.",
+        },
+        {
+          q: "A user is getting locked out multiple times during the day. You suspect an old device using stored credentials. Which tool can help you track down the source?",
+          options: [
+            "Event Viewer",
+            "Active Directory Sites and Services",
+            "PowerShell Get-ADUser",
+            "Netlogon logs on the Domain Controller",
+          ],
+          a: "Event Viewer",
+          exp: "The DC records Security Event IDs (like 4740) that contain the 'Caller Computer Name' sending bad passwords.",
+        },
+        {
+          q: "Your DHCP scope is full, and new devices cannot obtain IP addresses. What should you do?",
+          options: [
+            "Increase the DHCP scope range",
+            "Enable Secure DNS Updates",
+            "Restart the DHCP service",
+            "Use WMI filtering",
+          ],
+          a: "Increase the DHCP scope range",
+          exp: "If a scope is out of leases, you must expand the pool of available addresses or decrease the lease time.",
+        },
+        {
+          q: "How can you block USB drives while still allowing keyboards and mice?",
+          options: [
+            "Disable Device Manager",
+            "User Configuration → System Preferences",
+            "Computer Configuration → Windows Update Policies",
+            "Computer Configuration → Administrative Templates → System→ Removable Storage Access",
+          ],
+          a: "Computer Configuration → Administrative Templates → System→ Removable Storage Access",
+          exp: "This allows denying access to Removable Disks without affecting essential HID peripherals.",
+        },
+        {
+          q: "True or False: IPv4 is often referred to as an IP Address in its most straightforward format.",
+          options: ["True", "False"],
+          a: "True",
+          exp: "IPv4 uses a familiar 32-bit dotted-decimal format (like 192.168.1.1).",
+        },
+        {
+          q: "How can you ensure that only authorized clients update their own DNS records?",
+          options: [
+            "Disable recursion",
+            "Enable Secure Dynamic Updates",
+            "Change the DNS port to 8080",
+            "Use a Stub Zone",
+          ],
+          a: "Enable Secure Dynamic Updates",
+          exp: "Forces the DNS server to verify the computer's AD credentials before allowing it to modify a record.",
+        },
+        {
+          q: "A user needs to install software but should not have full administrative privileges. What is the best solution?",
+          options: [
+            "Assign them Enterprise Admin rights",
+            "Add them to the Domain Admins group",
+            "Enable them as an OU Administrator",
+            "Add them to the Local Administrators group on their machine",
+          ],
+          a: "Add them to the Local Administrators group on their machine",
+          exp: "Gives them enough permission to install software locally without granting dangerous network control.",
+        },
+        {
+          q: "Which method is best for assigning a network drive to all users in a specific department?",
+          options: [
+            "User Configuration → Preferences → Drive Maps",
+            "Enable NTFS folder redirection",
+            "Modify DNS settings",
+            "Assign a login script",
+          ],
+          a: "User Configuration → Preferences → Drive Maps",
+          exp: "Group Policy Preferences is the modern way to map network drives automatically.",
+        },
+        {
+          q: "How can you prevent users from changing their own passwords while allowing administrators to do so?",
+          options: [
+            "Modify the Default Domain Policy",
+            "Use NTFS permissions",
+            "Use the Delegation of Control Wizard",
+            'Set "User cannot change password" in ADUC',
+          ],
+          a: 'Set "User cannot change password" in ADUC',
+          exp: "Checking this restricts the user, but IT admins retain the authority to reset it manually.",
+        },
+        {
+          q: "You want a GPO to apply only to computers. What should you configure?",
+          options: [
+            "Security Filtering",
+            "Apply Loopback Processing",
+            "Disable User Configuration",
+            "Computer Configuration settings in GPO",
+          ],
+          a: "Computer Configuration settings in GPO",
+          exp: "Settings placed under 'Computer Configuration' apply to the machine regardless of the user.",
+        },
+        {
+          q: "A website hosted on IIS returns a 503 error. What is the most likely cause?",
+          options: [
+            "The Domain Controller is down",
+            "The website has expired SSL",
+            "A Group Policy changed permissions",
+            "The Application Pool is stopped",
+          ],
+          a: "The Application Pool is stopped",
+          exp: "HTTP 503 means Service Unavailable. In IIS, this almost always indicates the Application Pool has crashed or stopped.",
+        },
+        {
+          q: "Users report that print jobs are stuck in the queue on a Windows Server 2022 Print Server. What should you do first?",
+          options: [
+            "Restart the DNS server",
+            "Delete and reinstall the printer",
+            "Restart the Print Spooler service",
+            "Change NTFS permissions",
+          ],
+          a: "Restart the Print Spooler service",
+          exp: "The Print Spooler manages print queues. Restarting it clears the memory and allows printing to resume.",
+        },
+        {
+          q: "How do you ensure that an OU-level GPO is not overridden by a higher-level GPO?",
+          options: [
+            "Change the OU link order",
+            "Use Block Inheritance",
+            "Enable GPO Enforcement",
+            "Modify the GPO refresh interval",
+          ],
+          a: "Enable GPO Enforcement",
+          exp: "Note: Real-world often uses Block Inheritance to prevent flow down, but Enforcement forces policy precedence.",
+        },
+        {
+          q: "You need to allow only HR employees to use a network printer. What should you configure?",
+          options: [
+            "Windows Firewall",
+            "IIS website settings",
+            "Printer Security permissions",
+            "Print Spooler Service",
+          ],
+          a: "Printer Security permissions",
+          exp: "Print Servers allow setting strict security permissions on the printer object itself to control access.",
+        },
+      ];
+
+      let currentQuestion = 0;
+      let score = 0;
+      let userSelections = [];
+      const passingThreshold = 60; // 60%
+
+      // DOM Elements
+      const questionText = document.getElementById("question-text");
+      const optionsContainer = document.getElementById("options-container");
+      const nextBtn = document.getElementById("next-btn");
+      const progressFill = document.getElementById("progress-fill");
+      const progressText = document.getElementById("progress-text");
+
+      const quizContainer = document.getElementById("quiz-container");
+      const resultsContainer = document.getElementById("results-container");
+
+      // Shuffle Function (Fisher-Yates Algorithm)
+      function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+      }
+
+      // Initialize the quiz
+      function startQuiz() {
+        // Randomize the questions every time the quiz starts
+        shuffleArray(quizData);
+
+        currentQuestion = 0;
+        score = 0;
+        userSelections = new Array(quizData.length);
+
+        loadQuestion();
+      }
+
+      function loadQuestion() {
+        const qData = quizData[currentQuestion];
+        questionText.textContent = `${currentQuestion + 1}. ${qData.q}`;
+        optionsContainer.innerHTML = "";
+        nextBtn.disabled = true;
+
+        // Update progress
+        const percent = (currentQuestion / quizData.length) * 100;
+        progressFill.style.width = `${percent}%`;
+        progressText.textContent = `Question ${currentQuestion + 1} of ${quizData.length}`;
+
+        qData.options.forEach((option, index) => {
+          const optDiv = document.createElement("div");
+          optDiv.className = "option";
+          optDiv.textContent = option;
+          optDiv.onclick = () => selectOption(optDiv, option);
+          optionsContainer.appendChild(optDiv);
+        });
+      }
+
+      function selectOption(element, option) {
+        // Clear previous selection
+        const allOptions = optionsContainer.querySelectorAll(".option");
+        allOptions.forEach((opt) => opt.classList.remove("selected"));
+
+        // Mark current selection
+        element.classList.add("selected");
+
+        // Save answer and enable next button
+        userSelections[currentQuestion] = option;
+        nextBtn.disabled = false;
+      }
+
+      function nextQuestion() {
+        // Check answer
+        if (userSelections[currentQuestion] === quizData[currentQuestion].a) {
+          score++;
+        }
+
+        currentQuestion++;
+
+        if (currentQuestion < quizData.length) {
+          loadQuestion();
+        } else {
+          showResults();
+        }
+      }
+
+      function showResults() {
+        quizContainer.style.display = "none";
+        resultsContainer.style.display = "block";
+
+        const finalPercent = Math.round((score / quizData.length) * 100);
+        const scoreEl = document.getElementById("result-score");
+        const statusEl = document.getElementById("result-status");
+        const reviewList = document.getElementById("review-list");
+
+        scoreEl.textContent = `${finalPercent}%`;
+
+        if (finalPercent >= passingThreshold) {
+          statusEl.textContent = "Congratulations, you PASSED!";
+          statusEl.className = "pass";
+          scoreEl.className = "result-score pass";
+        } else {
+          statusEl.textContent = "Unfortunately, you FAILED.";
+          statusEl.className = "fail";
+          scoreEl.className = "result-score fail";
+        }
+
+        // Build Review
+        reviewList.innerHTML = ""; // Clear previous review if retaking
+        quizData.forEach((q, index) => {
+          const userAnswer = userSelections[index];
+          const isCorrect = userAnswer === q.a;
+
+          const reviewItem = document.createElement("div");
+          reviewItem.className = `review-item ${isCorrect ? "correct" : "incorrect"}`;
+
+          reviewItem.innerHTML = `
+                <div class="review-question">${index + 1}. ${q.q}</div>
+                <div class="review-answers">
+                    <strong>Your Answer:</strong> ${userAnswer || "No answer selected"} <br>
+                    ${!isCorrect ? `<strong>Correct Answer:</strong> ${q.a}` : ""}
+                </div>
+                <div class="review-explanation">
+                    <strong>Explanation:</strong> ${q.exp || "No explanation provided."}
+                </div>
+            `;
+          reviewList.appendChild(reviewItem);
+        });
+      }
+
+      // Start the quiz on load
+      startQuiz();
+    </script>
+  </body>
+</html>
